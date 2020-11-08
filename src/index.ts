@@ -1,5 +1,6 @@
 import { Color, gray } from "./color";
 import { ProgramBuilder, ProgramFactory } from "./gl/program";
+import { KhronosSamples } from "./known-models";
 import { GltfLoader } from "./loader";
 
 window.onload = (): void => {
@@ -32,7 +33,7 @@ window.onload = (): void => {
     const programFactory = new ProgramFactory(gl, programBuilder);
 
     const loader = new GltfLoader(gl, programFactory);
-    loader.load("https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/TriangleWithoutIndices/glTF/TriangleWithoutIndices.gltf")
+    loader.load(KhronosSamples.getSampleUri(KhronosSamples.names.length - 1))
         .then(loaded => {
             gl.clear(gl.COLOR_BUFFER_BIT);
             loaded.renderScene();

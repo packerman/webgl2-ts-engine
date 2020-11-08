@@ -40,6 +40,7 @@ enum Mode {
 
 interface Primitive {
     attributes: Partial<Record<Attribute, Integer>>;
+    indices?: Integer;
     mode?: Mode;
 }
 

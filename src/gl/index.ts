@@ -17,7 +17,11 @@ export class GLBuffer {
     }
 }
 
-export class GLPrimitive {
+export interface GLPrimitive {
+    draw(): void;
+}
+
+export class GLDefaultPrimitive implements GLPrimitive {
 
     constructor(private readonly gl: WebGL2RenderingContext,
         private readonly program: GLProgram,
@@ -29,6 +33,24 @@ export class GLPrimitive {
         this.program.use();
         this.gl.bindVertexArray(this.vertexArray);
         this.gl.drawArrays(this.mode, 0, this.count);
+        this.gl.bindVertexArray(null);
+        this.gl.useProgram(null);
+    }
+}
+
+export class GLIndexedPrimitive implements GLPrimitive {
+
+    constructor(private readonly gl: WebGL2RenderingContext,
+        private readonly program: GLProgram,
+        private readonly vertexArray: WebGLVertexArrayObject,
+        private readonly mode: GLenum,
+        private readonly count: GLsizei,
+        private readonly type: GLenum) {}
+
+    draw(): void {
+        this.program.use();
+        this.gl.bindVertexArray(this.vertexArray);
+        this.gl.drawElements(this.mode, this.count, this.type, 0);
         this.gl.bindVertexArray(null);
         this.gl.useProgram(null);
     }

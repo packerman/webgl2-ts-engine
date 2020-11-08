@@ -1,4 +1,4 @@
-import { GLBuffer, GLMesh, GLNode, GLPrimitive, GLScene } from "../gl";
+import { GLBuffer, GLMesh, GLNode, GLDefaultPrimitive, GLScene, GLIndexedPrimitive, GLPrimitive } from "../gl";
 import { ProgramFactory } from "../gl/program";
 import { Attribute, Integer, Root, Types } from "../gltf";
 import { requireNotNil } from "../util";
@@ -27,7 +27,7 @@ export class GltfLoader {
         program.use();
 
         const meshes = root.meshes.map(mesh => {
-            const primitives = mesh.primitives.map(primitive => {
+            const primitives: GLPrimitive[] = mesh.primitives.map(primitive => {
                 const vertexArray = requireNotNil(this.gl.createVertexArray(), "Cannot create vertex array");
                 this.gl.bindVertexArray(vertexArray);
 
@@ -36,11 +36,19 @@ export class GltfLoader {
                     requireNotNil(program.attributeLocations.position, `Location not found`),
                     root, buffers);
 
+                if (primitive.indices !== undefined) {
+                    const accessor = root.accessors[primitive.indices];
+                    const buffer = buffers[accessor.bufferView];
+                    buffer.bind();
+                    this.gl.bindVertexArray(null);
+                    buffer.unbind();
+                    return new GLIndexedPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, accessor.count, accessor.componentType);
+                }
+
                 this.gl.bindVertexArray(null);
 
                 const count = root.accessors[requireNotNil(primitive.attributes[Attribute.Position])].count;
-
-                return new GLPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, count);
+                return new GLDefaultPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, count);
             });
             return new GLMesh(primitives);
         });
