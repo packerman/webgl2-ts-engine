@@ -1,18 +1,44 @@
+import { Color, gray } from "./color";
+import { ProgramBuilder, ProgramFactory } from "./gl/program";
+import { GltfLoader } from "./loader";
+
 window.onload = (): void => {
     const canvas = document.getElementById('canvas') as HTMLCanvasElement;
     if (!canvas) {
         console.error('Canvas element not found');
         return;
     }
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
 
     const gl = canvas.getContext('webgl2');
     if (!gl) {
         console.error('WebGL2 is not available');
         return;
     }
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.5, 0.5, 0.5, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    console.log(`WebGL version = ${gl.getParameter(gl.VERSION)}`);
+    console.log(`WebGL vendor = ${gl.getParameter(gl.VENDOR)}`);
+    console.log(`WebGL renderer = ${gl.getParameter(gl.RENDERER)}`);
+
+    const onResize = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+    };
+    onResize();
+    window.addEventListener('resize', onResize);
+
+    setClearColor(gl, gray);
+
+    const programBuilder = new ProgramBuilder(gl);
+    const programFactory = new ProgramFactory(gl, programBuilder);
+
+    const loader = new GltfLoader(gl, programFactory);
+    loader.load("https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/TriangleWithoutIndices/glTF/TriangleWithoutIndices.gltf")
+        .then(loaded => {
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            loaded.renderScene();
+        });
 };
+
+function setClearColor(gl: WebGL2RenderingContext, color: Color) {
+    gl.clearColor(color.red, color.blue, color.green, color.alpha);
+}

@@ -10,6 +10,10 @@ module.exports = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+      {
+        test: /\.(frag|vert|glsl)$/i,
+        use:'raw-loader',
+      }
     ],
   },
   resolve: {
