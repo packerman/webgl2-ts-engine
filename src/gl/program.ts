@@ -54,17 +54,28 @@ export class ProgramBuilder {
 
 type AttributeSpecifications = {
     readonly position: string;
+    readonly normal?: string;
 };
 
 type AttributeLocations = {
     readonly position: GLint;
+    readonly normal?: GLint;
 };
+
+type UniformSpecifications = {
+    readonly modelMatrix?: string,
+}
+
+type UniformLocations = {
+    readonly modelMatrix?: WebGLUniformLocation;
+}
 
 export class GLProgram {
 
     constructor(private readonly gl: WebGL2RenderingContext,
         private readonly program: WebGLProgram,
-        readonly attributeLocations: Readonly<AttributeLocations>) {}
+        readonly attributeLocations: AttributeLocations,
+        readonly uniformLocations: UniformLocations) {}
 
     use(): void {
         this.gl.useProgram(this.program);
@@ -79,14 +90,21 @@ export class ProgramFactory {
     whiteColor(): GLProgram {
         return this.createProgram(whiteColorVertex, whiteColorFragment, {
             position: "position"
-        });
+        },
+        {});
     }
 
-    private createProgram(vertexShader: string, fragmentShader: string, attributeSpecifications: AttributeSpecifications): GLProgram {
+    private createProgram(vertexShader: string, fragmentShader: string,
+        attributeSpecifications: AttributeSpecifications,
+        uniformSpecifications: UniformSpecifications): GLProgram {
         const program = requireNotNil(this.programBuilder.buildProgram(vertexShader, fragmentShader), "Cannot build program");
         const locations = {
-            position: this.gl.getAttribLocation(program, attributeSpecifications.position)
+            position: this.gl.getAttribLocation(program, attributeSpecifications.position),
+            normal: attributeSpecifications.normal ? this.gl.getAttribLocation(program, attributeSpecifications.normal) : undefined,
         };
-        return new GLProgram(this.gl, program, locations);
+        const uniforms = {
+            modelMatrix: uniformSpecifications.modelMatrix ? this.gl.getUniformLocation(program, uniformSpecifications.modelMatrix) : undefined,
+        };
+        return new GLProgram(this.gl, program, locations, uniforms);
     }
 }

@@ -1,3 +1,4 @@
+import { mat4 } from "gl-matrix";
 import { GLProgram } from "./program";
 
 export class GLBuffer {
@@ -67,7 +68,9 @@ export class GLMesh {
 
 export class GLNode {
 
-    constructor(private readonly mesh?: GLMesh) {}
+    constructor(
+        private readonly transform: mat4,
+        private readonly mesh?: GLMesh) {}
 
     draw(): void {
         this.mesh?.draw();

@@ -1,6 +1,7 @@
+import { mat4 } from "gl-matrix";
 import { GLBuffer, GLMesh, GLNode, GLDefaultPrimitive, GLScene, GLIndexedPrimitive, GLPrimitive } from "../gl";
-import { ProgramFactory } from "../gl/program";
-import { Attribute, Integer, Root, Types } from "../gltf";
+import { GLProgram, ProgramFactory } from "../gl/program";
+import { Attribute, Integer, Primitive, Root, Types, Node } from "../gltf";
 import { requireNotNil } from "../util";
 import { Loaded } from "./loaded";
 
@@ -27,33 +28,17 @@ export class GltfLoader {
         program.use();
 
         const meshes = root.meshes.map(mesh => {
-            const primitives: GLPrimitive[] = mesh.primitives.map(primitive => {
-                const vertexArray = requireNotNil(this.gl.createVertexArray(), "Cannot create vertex array");
-                this.gl.bindVertexArray(vertexArray);
-
-                this.setAttribute(
-                    primitive.attributes[Attribute.Position],
-                    requireNotNil(program.attributeLocations.position, `Location not found`),
-                    root, buffers);
-
-                if (primitive.indices !== undefined) {
-                    const accessor = root.accessors[primitive.indices];
-                    const buffer = buffers[accessor.bufferView];
-                    buffer.bind();
-                    this.gl.bindVertexArray(null);
-                    buffer.unbind();
-                    return new GLIndexedPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, accessor.count, accessor.componentType);
-                }
-
-                this.gl.bindVertexArray(null);
-
-                const count = root.accessors[requireNotNil(primitive.attributes[Attribute.Position])].count;
-                return new GLDefaultPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, count);
+            const primitives = mesh.primitives.map(primitive => {
+                const glPrimitive = this.createGLPrimitive(primitive, root, program, buffers);
+                this.unbindArrays();
+                return glPrimitive;
             });
             return new GLMesh(primitives);
         });
 
-        const nodes = root.nodes.map(node => new GLNode(node.mesh != undefined ? meshes[node.mesh] : undefined));
+        const nodes = root.nodes.map(node => new GLNode(
+            this.createTransform(node),
+            node.mesh != undefined ? meshes[node.mesh] : undefined));
 
         const scenes = root.scenes.map(scene => new GLScene(scene.nodes.map(index => nodes[index])));
 
@@ -63,6 +48,27 @@ export class GltfLoader {
     private async loadBufferData(uris: string[]): Promise<ArrayBuffer[]> {
         const responses = await Promise.all(uris.map(uri => fetch(uri)));
         return Promise.all(responses.map(response => response.arrayBuffer()));
+    }
+
+    private createGLPrimitive(primitive: Primitive, root: Root, program: GLProgram, buffers: GLBuffer[]): GLPrimitive {
+        const vertexArray = requireNotNil(this.gl.createVertexArray(), "Cannot create vertex array");
+            this.gl.bindVertexArray(vertexArray);
+
+            this.setAttribute(
+                primitive.attributes[Attribute.Position],
+                requireNotNil(program.attributeLocations.position, `Location not found`),
+                root, buffers);
+
+            if (primitive.indices !== undefined) {
+                const accessor = root.accessors[primitive.indices];
+                const buffer = buffers[accessor.bufferView];
+                buffer.bind();
+
+                return new GLIndexedPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, accessor.count, accessor.componentType);
+            }
+
+            const count = root.accessors[requireNotNil(primitive.attributes[Attribute.Position])].count;
+            return new GLDefaultPrimitive(this.gl, program, vertexArray, primitive.mode || this.gl.TRIANGLES, count);
     }
 
     private setAttribute(index: Integer | undefined, location: GLint, root: Root, buffers: GLBuffer[]): void {
@@ -76,6 +82,26 @@ export class GltfLoader {
             accessor.normalized || false,
             buffer.stride,
             accessor.byteOffset || 0);
-        buffer.unbind();
+    }
+
+    private createTransform(node: Node): mat4 {
+        if (node.matrix) {
+            const out = mat4.create();
+            return mat4.copy(out, node.matrix);
+        } else if (node.translation || node.rotation || node.scale) {
+            const out = mat4.create();
+            return mat4.fromRotationTranslationScale(out,
+                node.rotation || [0, 0, 0, 1],
+                node.translation || [0, 0, 0],
+                node.scale || [1, 1, 1]);
+        } else {
+            return mat4.create();
+        }
+    }
+
+    private unbindArrays(): void {
+        this.gl.bindVertexArray(null);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 }

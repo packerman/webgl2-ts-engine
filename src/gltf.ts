@@ -16,8 +16,16 @@ interface Scene {
     nodes: Integer[];
 }
 
-interface Node {
+export interface Node {
+    matrix?: [
+        number, number, number, number,
+        number, number, number, number,
+        number, number, number, number,
+        number, number, number, number];
     mesh?: Integer;
+    rotation?: [number, number, number, number];
+    scale: [number, number, number];
+    translation?: [number, number, number];
 }
 
 interface Mesh {
@@ -26,6 +34,7 @@ interface Mesh {
 
 export enum Attribute {
     Position = "POSITION",
+    Normal = "NORMAL",
 }
 
 enum Mode {
@@ -38,7 +47,7 @@ enum Mode {
     TriangleFan
 }
 
-interface Primitive {
+export interface Primitive {
     attributes: Partial<Record<Attribute, Integer>>;
     indices?: Integer;
     mode?: Mode;
