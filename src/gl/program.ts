@@ -103,7 +103,8 @@ export class ProgramFactory {
             normal: attributeSpecifications.normal ? this.gl.getAttribLocation(program, attributeSpecifications.normal) : undefined,
         };
         const uniforms = {
-            modelMatrix: uniformSpecifications.modelMatrix ? this.gl.getUniformLocation(program, uniformSpecifications.modelMatrix) : undefined,
+            modelMatrix: uniformSpecifications.modelMatrix ?
+                requireNotNil(this.gl.getUniformLocation(program, uniformSpecifications.modelMatrix), `Uniform ${uniformSpecifications.modelMatrix} not found`) : undefined,
         };
         return new GLProgram(this.gl, program, locations, uniforms);
     }
